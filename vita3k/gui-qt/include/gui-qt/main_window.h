@@ -158,7 +158,9 @@ private:
     bool close_auxiliary_windows();
     void prune_auxiliary_windows();
     void save_window_state();
-    void restore_window_state();
+    void restore_window_state();    
+    void save_render_window_geometry();
+    void restore_render_window_geometry(QWindow *window);
     void open_debug_widget(int tab);
     void apply_log_gui_settings();
     void repaint_gui();
