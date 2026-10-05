@@ -1237,8 +1237,8 @@ void MainWindow::show_live_area(const std::string &title_id) {
     m_ui->toolbar_fullscreen->setText(m_fullscreen ? tr("Exit Fullscreen") : tr("Fullscreen"));
 
     connect(m_live_area_widget, &LiveAreaWidget::play_clicked,
-        this, &MainWindow::on_live_area_play);
-        save_render_window_geometry();
+    this, &MainWindow::on_live_area_play);
+    save_render_window_geometry();
 }
 
 void MainWindow::on_live_area_play() {
