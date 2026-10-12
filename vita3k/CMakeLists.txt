@@ -144,6 +144,7 @@ add_subdirectory(overlay)
 add_subdirectory(regmgr)
 add_subdirectory(renderer)
 add_subdirectory(rtc)
+add_subdirectory(sdl-frontend)
 add_subdirectory(shader)
 add_subdirectory(threads)
 add_subdirectory(touch)
@@ -210,7 +211,7 @@ if(WIN32)
 	target_sources(vita3k PRIVATE util/src/vc_runtime_checker.cpp)
 endif()
 
-target_link_libraries(vita3k PRIVATE app audio compat config cppcommon ctrl dialog display ime lang gdbstub gxm io miniz modules motion packages patch renderer shader touch util psvpfsparser)
+target_link_libraries(vita3k PRIVATE app audio compat config ctrl dialog display ime lang gdbstub gxm io miniz modules motion packages patch renderer sdl-frontend shader touch util psvpfsparser)
 if(NOT ANDROID)
 	target_link_libraries(vita3k PRIVATE gui-qt)
 endif()
@@ -223,6 +224,7 @@ if(NOT ANDROID)
 		"${CMAKE_SOURCE_DIR}/i18n/qt/*.ts")
 	set(VITA3K_QT_QM_DIR "${CMAKE_BINARY_DIR}/qt_translations")
 	set(VITA3K_QT_QM_FILES "")
+	file(MAKE_DIRECTORY "${VITA3K_QT_QM_DIR}")
 
 	foreach(ts_file IN LISTS VITA3K_QT_TS_FILES)
 		get_filename_component(ts_name "${ts_file}" NAME_WE)
@@ -240,15 +242,16 @@ if(NOT ANDROID)
 	add_dependencies(vita3k qt_app_translations)
 
 	add_custom_target(update_qt_translations
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/template"
 		COMMAND $<TARGET_FILE:Qt6::lupdate>
 			-no-obsolete
 			-recursive
 			"${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
 			"${CMAKE_CURRENT_SOURCE_DIR}/gui-qt/src"
 			"${CMAKE_CURRENT_SOURCE_DIR}/gui-qt/include"
-			-ts "${CMAKE_SOURCE_DIR}/i18n/qt/vita3k_en.ts"
+			-ts "${CMAKE_SOURCE_DIR}/template/vita3k_template.ts"
 		WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-		COMMENT "Updating Qt translation source file")
+		COMMENT "Generating the Qt translation template")
 endif()
 
 set_target_properties(vita3k PROPERTIES OUTPUT_NAME Vita3K)
@@ -331,7 +334,7 @@ elseif(LINUX)
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${APPDIR}/usr/share/metainfo"
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${APPDIR}/usr/share/doc/${VITA3K_APP_NAME}"
 			COMMAND ${CMAKE_COMMAND} -E make_directory "${APPDIR}/usr/share/licenses/${VITA3K_APP_NAME}"
-			COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/data" "${APPDIR}/usr/share/${VITA3K_APP_NAME}/"
+			COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/data" "${APPDIR}/usr/share/${VITA3K_APP_NAME}/data"
 			COMMAND ${CMAKE_COMMAND} -E copy_directory "${VITA3K_QT_QM_DIR}" "${APPDIR}/usr/share/${VITA3K_APP_NAME}/translations"
 			COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/shaders-builtin" "${APPDIR}/usr/share/${VITA3K_APP_NAME}/shaders-builtin"
 			COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/icons" "${APPDIR}/usr/share/VITA3K_APP_NAME/icons"
@@ -364,8 +367,8 @@ elseif(LINUX)
 			${CMAKE_CURRENT_SOURCE_DIR}/icons
 			${CMAKE_SOURCE_DIR}/data
 			DESTINATION "${CMAKE_INSTALL_DATADIR}/Vita3K/")
-		install(FILES
-			${VITA3K_QT_QM_FILES}
+		install(DIRECTORY
+			"${VITA3K_QT_QM_DIR}/"
 			DESTINATION "${CMAKE_INSTALL_DATADIR}/Vita3K/translations/")
 		install(FILES
 			"${CMAKE_SOURCE_DIR}/dist/image/${VITA3K_APP_ID}.svg"

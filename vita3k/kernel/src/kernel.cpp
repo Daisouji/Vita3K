@@ -146,6 +146,17 @@ ThreadStatePtr KernelState::get_thread(SceUID thread_id) {
     return lock_and_find(thread_id, threads, mutex);
 }
 
+SceUID KernelState::create_callback(const ThreadStatePtr &thread, const char *name, Ptr<SceKernelCallbackFunction> func, Ptr<void> common) {
+    const CallbackPtr cb = std::make_shared<Callback>(thread, name, func, common);
+    const SceUID uid = objects.add(cb, get_next_uid());
+    thread->add_callback(cb);
+    return uid;
+}
+
+bool KernelState::delete_callback(SceUID id) {
+    return objects.remove<Callback>(id);
+}
+
 ThreadStatePtr KernelState::create_thread(MemState &mem, const char *name, Ptr<const void> entry_point) {
     return create_thread(mem, name, entry_point, SCE_KERNEL_DEFAULT_PRIORITY, SCE_KERNEL_THREAD_CPU_AFFINITY_MASK_DEFAULT, SCE_KERNEL_STACK_SIZE_USER_MAIN, nullptr);
 }
@@ -222,17 +233,7 @@ void KernelState::deinit(MemState &mem) {
     process_exit();
     threads.clear();
 
-    simple_events.clear();
-    timers.clear();
-    semaphores.clear();
-    condvars.clear();
-    lwcondvars.clear();
-    mutexes.clear();
-    lwmutexes.clear();
-    rwlocks.clear();
-    eventflags.clear();
-    msgpipes.clear();
-    callbacks.clear();
+    objects.clear();
 
     loaded_modules.clear();
     loaded_sysmodules.clear();

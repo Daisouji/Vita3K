@@ -110,6 +110,11 @@ static bool is_nonpdrm(EmuEnvState &emuenv, const fs::path &output_path) {
 }
 
 static bool set_content_path(EmuEnvState &emuenv, const bool is_theme, fs::path &dest_path) {
+    if (emuenv.app_info.app_title_id.empty()) {
+        LOG_ERROR("param.sfo has no title ID, not installing it");
+        return false;
+    }
+
     const auto app_path = dest_path / "app" / emuenv.app_info.app_title_id;
 
     if (emuenv.app_info.app_category == "ac") {
@@ -426,7 +431,7 @@ static ExitCode load_app_impl(SceUID &main_module_id, EmuEnvState &emuenv, const
         ::call_import(emuenv, cpu, nid, thread_id);
     };
     emuenv.kernel.process_exit_callback = [&emuenv](int res, std::optional<AppLaunchRequest> relaunch) {
-        emuenv.post_app_launch_request(relaunch.value_or(AppLaunchRequest{ .reason = AppLaunchReason::ProcessExit }));
+        emuenv.post_app_launch_request(relaunch.value_or(AppLaunchRequest{ .reason = AppLaunchReason::ProcessExit, .exit_code = res }));
     };
     if (!emuenv.kernel.init(emuenv.mem, call_import, emuenv.cfg.current_config.cpu_opt)) {
         LOG_WARN("Failed to init kernel!");
@@ -682,6 +687,9 @@ ExitCode run_app(EmuEnvState &emuenv, int32_t main_module_id, const AppLaunchReq
         return InitThreadFailed;
     }
     emuenv.main_thread_id = main_thread->id;
+
+    // Before any guest code runs, module_start functions included, since they can read it too
+    emuenv.set_launch_uri(emuenv.cfg.launch_uri);
 
     // Run `module_start` export (entry point) of loaded libraries
     for (auto &[_, module] : emuenv.kernel.loaded_modules) {
